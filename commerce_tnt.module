@@ -1,0 +1,400 @@
+<?php
+
+/**
+ * @file
+ * Defines the TNT shipping method and services for Drupal Commerce.
+ */
+
+require 'commerce_tnt.xml.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function commerce_tnt_menu() {
+  $items = array();
+
+  $items['admin/commerce/config/shipping/methods/tnt/edit'] = array(
+    'title' => 'Edit',
+    'description' => 'Adjust TNT shipping settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('commerce_tnt_settings_form'),
+    'access arguments' => array('administer shipping'),
+    'file' => 'commerce_tnt.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => 0,
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implements hook_commerce_shipping_method_info().
+ */
+function commerce_tnt_commerce_shipping_method_info() {
+  $shipping_methods = array();
+
+  $shipping_methods['tnt'] = array(
+    'title' => t('TNT'),
+    'description' => t('Quote rates from TNT'),
+  );
+
+  return $shipping_methods;
+}
+
+
+/**
+ * Implements hook_commerce_shipping_service_info().
+ */
+function commerce_tnt_commerce_shipping_service_info() {
+  $shipping_services = array();
+
+  $available_services = _commerce_tnt_service_list();
+  $selected_services = variable_get('commerce_tnt_services', array());
+
+  foreach ($selected_services as $id => $val) {
+    if ($val != 0) { // if you find a selected one...
+      $service = $available_services[$id];
+      $shipping_services[$service['slug']] = array(
+        'title' => t($service['title']),
+        'description' => t($service['description']),
+        'display_title' => t($service['title']),
+        'shipping_method' => 'tnt',
+        'price_component' => 'shipping',
+        'callbacks' => array(
+          'rate' => 'commerce_tnt_service_rate_order',
+        )
+      );
+    }
+  }
+  return $shipping_services;
+}
+
+
+/**
+ * Returns an array of shipping method rates obtained from the TNT servers.
+ *
+ * @param array $shipping_service
+ *   The shipping service that is being requested by commerce shipping.
+ * @param object $order
+ *   The commerce order object for the order that we're requesting rates for.
+ *
+ * @return array
+ *   The rate values for the requested shipping service.
+ */
+function commerce_tnt_service_rate_order($shipping_service, $order) {
+
+  // First attempt to recover cached shipping rates for the current order.
+  $rates = commerce_shipping_rates_cache_get('commerce_tnt', $order, variable_get('commerce_tnt_rates_timeout', 0));
+
+  // If no rates were recovered from the cache or the cached rates are over one minute old...
+  if (!$rates) {
+    $rates = array();
+
+    // Build the rate request for the current order. This returns XML.
+    $rate_request_xml = commerce_tnt_build_rate_request($order);
+
+    // If we got a valid rate request object back...
+    if ($rate_request_xml) {
+      // Submit the API request to UPS.
+      $response = commerce_tnt_api_request($rate_request_xml);
+      
+      if (!empty($response) && isset($response->ratedTransitTimeResponse->ratedProducts->ratedProduct)) {
+        // Parse the response to cache all requested rates for the current order.
+        foreach ($response->ratedTransitTimeResponse->ratedProducts->ratedProduct as $rate) {
+          // Extract the service name and price information from the rate object.
+          $service_name = commerce_tnt_commerce_shipping_service_name((string) $rate->product->code);
+          $decimal = (string) $rate->quote->price;
+          $currency_code = (string) $rate->quote->attributes()->currency;
+
+          // Add an item to the rates array for the current service.
+          $rates[$service_name] = array(
+            'amount' => commerce_currency_decimal_to_amount($decimal, $currency_code),
+            'currency_code' => $currency_code,
+            'data' => array(),
+          );
+        }
+
+        // Cache the calculated rates for subsequent requests.
+        commerce_shipping_rates_cache_set('commerce_tnt', $order, $rates);
+      }
+      else if (!empty($response) && isset($response->ratedTransitTimeResponse->brokenRules->brokenRule)) {
+        drupal_set_message(t('Error Code: ' . $response->ratedTransitTimeResponse->brokenRules->brokenRule->code . ' - ' . $response->ratedTransitTimeResponse->brokenRules->brokenRule->description), 'error');
+      }
+    }
+  }
+  return isset($rates[$shipping_service['name']]) ? $rates[$shipping_service['name']] : FALSE;
+}
+
+
+/**
+ * Submit handler for Shipping Info form
+ */
+function commerce_tnt_entity_update($entity, $type) {
+  if ($type == 'node' && $entity->type == 'product_display') {
+    
+    if (isset($entity->shipping_info)) {
+      
+      $shipping_info = $entity->shipping_info;
+  
+      // Only save if active is checked.
+      if ($shipping_info['active'] == 1) {
+  
+        // Load TNT Shipping Info for this node, if they exist.
+        $query = db_select('commerce_tnt', 'ct');
+        $query->fields('ct', array('ctid', 'product_id'));
+        $query->condition('ct.nid', $entity->nid);
+        $results = $query->execute();
+        $ctid = '';
+        foreach ($results as $row) {
+          $ctid = $row->ctid;
+          $product_id = $row->product_id;
+        }
+  
+        // Load the commerce_product associated with this display node.
+        if (!$product_id) {
+          $product_info = field_get_items('node', $entity, 'field_product_reference');
+          $product = commerce_product_load($product_info[0]['product_id']);
+          $product_id = $product->product_id;
+        }
+  
+        // Save the shipping info into the commerce_tnt table.
+        $data = (object) array(
+          'active' => $shipping_info['active'],
+          'nid' => $entity->nid,
+          'product_id' => $product_id,
+          'number_of_packages' => $shipping_info['number_of_packages'],
+          'total_weight' => number_format($shipping_info['weight'], 2, '.', ''),
+          'length' => $shipping_info['dimensions']['length'],
+          'width' => $shipping_info['dimensions']['width'],
+          'height' => $shipping_info['dimensions']['height'],
+        );
+  
+        if (isset($ctid) && !empty($ctid)) {
+          $data->ctid = $ctid;
+        }
+  
+        // Save the TNT Shipping data
+        $key = empty($ctid) ? array() : 'ctid';
+        drupal_write_record('commerce_tnt', $data, $key);
+  
+      }
+      
+    }
+
+  }
+}
+
+
+/**
+ * A function to return a shipping service name
+ * given a shipping service code
+ */
+function commerce_tnt_commerce_shipping_service_name($service_code) {
+  $service_names = _commerce_tnt_service_list();
+  return $service_names[$service_code]['slug'];
+}
+
+
+/**
+ * Implements hook_commerce_price_component_type_info().
+ */
+function commerce_tnt_commerce_price_component_type_info() {
+  return array(
+    'tnt_road_express' => array(
+      'title' => t('TNT Road Express'),
+      'weight' => 20,
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_form_alter().
+ */
+function commerce_tnt_form_alter(&$form, $form_state, $form_id) {
+  if (!empty($form['#node_edit_form']) && $form['type']['#value'] == 'product_display') {
+
+    // Load ezypay product options for this node, if they exist.
+    $query = db_select('commerce_tnt', 'ct');
+    $query->fields('ct',
+      array('active',
+            'nid',
+            'product_id',
+            'container_type',
+            'number_of_packages',
+            'total_weight',
+            'length',
+            'width',
+            'height',
+            ));
+    $query->condition('ct.nid', $form['nid']['#value']);
+    $results = $query->execute();
+
+    if ($results) {
+      foreach ($results as $row) {
+        $shipping_info['shipping_info'] = $row;
+      }
+    }
+
+    // Create a fieldset that will be included in the vertical tab.
+    $form['shipping_info'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('TNT Shipping'),
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+      '#tree' => TRUE,
+      '#weight' => -99,
+      '#group' => 'additional_settings',
+      '#attributes' => array(
+        'class' => array('shipping_information'),
+      ),
+      '#attached' => array(
+        'js' => array(drupal_get_path('module', 'commerce_tnt') . '/js/commerce_tnt.js'),
+      ),
+    );
+
+    $form['shipping_info']['active'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Activate TNT Shipping for this product.'),
+      '#default_value' => (isset($shipping_info['shipping_info']->active)) ? $shipping_info['shipping_info']->active : 0,
+    );
+
+    $form['shipping_info']['number_of_packages'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Number of Packages'),
+      '#description' => t('How many packages are there for this product. e.g for 3 Boxes enter 3 or for 1 Pallet enter 1'),
+      '#default_value' => (isset($shipping_info['shipping_info']->number_of_packages)) ? $shipping_info['shipping_info']->number_of_packages : 1,
+    );
+
+    $form['shipping_info']['weight'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Total Weight'),
+      '#description' => t('The total weight of all items, when packed, in kilograms (kg)'),
+      '#default_value' => (isset($shipping_info['shipping_info']->total_weight)) ? $shipping_info['shipping_info']->total_weight : 1,
+    );
+
+    $form['shipping_info']['dimensions'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Dimensions'),
+    );
+
+    $form['shipping_info']['dimensions']['length'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Length (cm)'),
+      '#description' => t('The total length of all packages for this product in centimetres (cm)'),
+      '#default_value' => (isset($shipping_info['shipping_info']->length)) ? $shipping_info['shipping_info']->length : '',
+    );
+
+    $form['shipping_info']['dimensions']['width'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Width (cm)'),
+      '#description' => t('The total width of all packages for this product in centimetres (cm)'),
+      '#default_value' => (isset($shipping_info['shipping_info']->width)) ? $shipping_info['shipping_info']->width : '',
+    );
+
+    $form['shipping_info']['dimensions']['height'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Height (cm)'),
+      '#description' => t('The total height of all packages for this product in centimetres (cm)'),
+      '#default_value' => (isset($shipping_info['shipping_info']->height)) ? $shipping_info['shipping_info']->height : '',
+    );
+
+    $form['#validate'][] = 'commerce_tnt_shipping_info_validate';
+  }
+}
+
+
+/**
+ * Validate function for the Shipping Info tab on product edit page.
+ */
+function commerce_tnt_shipping_info_validate($form, &$form_state) {
+  $shipping_info = $form_state['values']['shipping_info'];
+
+  if ($shipping_info['active'] == 1) {
+    if ($shipping_info['number_of_packages'] == 0) {
+      form_set_error('shipping_info][number_of_packages', t('Number of Packages needs to be greater than zero.'));
+    }
+    if ($shipping_info['weight'] == 0) {
+      form_set_error('shipping_info][weight', t('Weight needs to be greater than zero.'));
+    }
+    if (empty($shipping_info['dimensions']['length'])) {
+      form_set_error('shipping_info][dimensions][length', t('You are required to enter a length value.'));
+    }
+    if ($shipping_info['dimensions']['length'] == 0) {
+      form_set_error('shipping_info][dimensions][length', t('Length needs to be greater than zero.'));
+    }
+    if (empty($shipping_info['dimensions']['width'])) {
+      form_set_error('shipping_info][dimensions][width', t('You are required to enter a width value.'));
+    }
+    if ($shipping_info['dimensions']['width'] == 0) {
+      form_set_error('shipping_info][dimensions][width', t('Width needs to be greater than zero.'));
+    }
+    if (empty($shipping_info['dimensions']['height'])) {
+      form_set_error('shipping_info][dimensions][height', t('You are required to enter a height value.'));
+    }
+    if ($shipping_info['dimensions']['height'] == 0) {
+      form_set_error('shipping_info][dimensions][height', t('Height needs to be greater than zero.'));
+    }
+  }
+}
+
+
+/**
+ * Helper function to get tnt codes for their services.
+ */
+function _commerce_tnt_service_list() {
+  $services =  array(
+    '76' => array(
+      'title' => t('Road Express'),
+      'description' => t('Road Express'),
+    ),
+    '75' => array(
+      'title' => t('Overnight Express'),
+      'description' => t('Overnight Express'),
+    ),
+    '712' => array(
+      'title' => t('Overnight Delivery by 9.00am'),
+      'description' => t('Overnight Delivery by 9.00am'),
+    ),
+    '717B' => array(
+      'title' => t('Technology Express - Sensitive Express'),
+      'description' => t('Technology Express - Sensitive Express'),
+    ),
+    '717' => array(
+      'title' => t('Technology Express - Premium Express'),
+      'description' => t('Technology Express - Premium Express'),
+    ),
+    '701' => array(
+      'title' => t('Sameday Domestic'),
+      'description' => t('Sameday Domestic'),
+    ),
+  );
+
+  /* Make a unique ID to identify the service by */
+  foreach ($services as $key => $service) {
+    $service['slug'] = str_replace(' ', '_', drupal_strtolower($service['title']));
+    $services[$key] = $service;
+  }
+  return $services;
+}
+
+
+/**
+ * Helper function to get product_ids from an order
+ *
+ * Returns an array of product_ids
+ */
+function _commerce_tnt_get_cart_products($order) {
+  $line_item_info = field_get_items('commerce_order', $order, 'commerce_line_items');
+  $lids = array_map("current", $line_item_info);
+  $line_items = commerce_line_item_load_multiple($lids);
+  foreach ($line_items as $line_item) {
+    if ($line_item->type == 'product') {
+      $product_id_info = field_get_items('commerce_line_item', $line_item, 'commerce_product');
+      $pids[] = $product_id_info[0]['product_id'];
+    }
+  }
+  return $pids;
+}

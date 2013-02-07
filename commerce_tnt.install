@@ -1,0 +1,77 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the Commerce TNT module.
+ */
+
+
+/**
+ * Implements hook_schema().
+ */
+function commerce_tnt_schema() {
+  $schema['commerce_tnt'] = array(
+    'description' => 'The base table for commerce_tnt.',
+    'fields' => array(
+      'ctid' => array(
+        'description' => 'The primary identifier for the shipping info.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'active' => array(
+        'description' => 'Whether TNT Shipping is active for this product.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'nid' => array(
+        'description' => 'The nid of the product display that this shipping info relates to.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'product_id' => array(
+        'description' => 'The id for this product.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'number_of_packages' => array(
+        'description' => 'The number of packages for this product.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'total_weight' => array(
+        'description' => 'The total weight of this product, when packed.',
+        'type' => 'numeric',
+        'size' => 'normal',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'length' => array(
+        'description' => 'The length in cm of this product when packed.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'width' => array(
+        'description' => 'The width in cm of this product when packed.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'height' => array(
+        'description' => 'The height in cm of this product when packed.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('ctid'),
+  );
+
+  return $schema;
+}
