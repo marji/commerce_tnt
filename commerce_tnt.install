@@ -24,14 +24,8 @@ function commerce_tnt_schema() {
         'not null' => TRUE,
         'default' => 1,
       ),
-      'nid' => array(
-        'description' => 'The nid of the product display that this shipping info relates to.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 1,
-      ),
       'product_id' => array(
-        'description' => 'The id for this product.',
+        'description' => 'The id of the product.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 1,

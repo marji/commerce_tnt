@@ -21,8 +21,6 @@ function commerce_tnt_build_rate_request($order) {
     $query = db_select('commerce_tnt', 'ct');
     $query->fields('ct',
       array(
-        'active',
-        'nid',
         'product_id',
         'container_type',
         'number_of_packages',
