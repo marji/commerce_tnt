@@ -54,7 +54,7 @@ function commerce_tnt_commerce_shipping_service_info() {
   $selected_services = variable_get('commerce_tnt_services', array());
 
   foreach ($selected_services as $id => $val) {
-    if ($val != 0) { // if you find a selected one...
+    if ($val != 0) {
       $service = $available_services[$id];
       $shipping_services[$service['slug']] = array(
         'title' => t($service['title']),
@@ -64,7 +64,7 @@ function commerce_tnt_commerce_shipping_service_info() {
         'price_component' => 'shipping',
         'callbacks' => array(
           'rate' => 'commerce_tnt_service_rate_order',
-        )
+        ),
       );
     }
   }
@@ -85,10 +85,12 @@ function commerce_tnt_commerce_shipping_service_info() {
  */
 function commerce_tnt_service_rate_order($shipping_service, $order) {
 
-  // First attempt to recover cached shipping rates for the current order.
+  // First attempt to recover cached shipping
+  // rates for the current order.
   $rates = commerce_shipping_rates_cache_get('commerce_tnt', $order, variable_get('commerce_tnt_rates_timeout', 0));
 
-  // If no rates were recovered from the cache or the cached rates are over one minute old...
+  // If no rates were recovered from the cache or the
+  // cached rates are over one minute old...
   if (!$rates) {
     $rates = array();
 
@@ -99,7 +101,7 @@ function commerce_tnt_service_rate_order($shipping_service, $order) {
     if ($rate_request_xml) {
       // Submit the API request to UPS.
       $response = commerce_tnt_api_request($rate_request_xml);
-      
+
       if (!empty($response) && isset($response->ratedTransitTimeResponse->ratedProducts->ratedProduct)) {
         // Parse the response to cache all requested rates for the current order.
         foreach ($response->ratedTransitTimeResponse->ratedProducts->ratedProduct as $rate) {
