@@ -5,7 +5,3 @@ dependencies[] = commerce
 dependencies[] = commerce_shipping
 version = "7.x-0.1"
 core = 7.x
-
-; Files
-files[] = commerce_tnt.install
-files[] = commerce_tnt.module

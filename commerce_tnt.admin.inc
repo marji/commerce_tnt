@@ -58,8 +58,6 @@ function commerce_tnt_settings_form() {
     '#description' => t('Select the TNT services that are available to customers.'),
   );
 
-  $form['#validate'][] = 'commerce_tnt_settings_form_validate';
-
   return system_settings_form($form);
 }
 
