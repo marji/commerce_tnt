@@ -123,9 +123,10 @@ function commerce_tnt_service_rate_order($shipping_service, $order) {
       }
       elseif (!empty($response) && isset($response->ratedTransitTimeResponse->brokenRules->brokenRule)) {
         drupal_set_message(t('Error Code: @code - @description', 
-          array('@code' => check_plain($response->ratedTransitTimeResponse->brokenRules->brokenRule->code),
-                '@description' => check_plain($response->ratedTransitTimeResponse->brokenRules->brokenRule->description)
-               )));
+          array(
+            '@code' => check_plain($response->ratedTransitTimeResponse->brokenRules->brokenRule->code),
+            '@description' => check_plain($response->ratedTransitTimeResponse->brokenRules->brokenRule->description),
+          )));
       }
     }
   }
@@ -134,8 +135,7 @@ function commerce_tnt_service_rate_order($shipping_service, $order) {
 
 
 /**
- * A function to return a shipping service name
- * given a shipping service code
+ * A function to return a shipping service name given a shipping service code.
  */
 function commerce_tnt_commerce_shipping_service_name($service_code) {
   $service_names = _commerce_tnt_service_list();
@@ -165,14 +165,15 @@ function commerce_tnt_inline_entity_form_entity_form_alter(&$entity_form, &$form
     // Load commerce_tnt info for this node, if it exist.
     $query = db_select('commerce_tnt', 'ct');
     $query->fields('ct',
-      array('active',
-            'product_id',
-            'number_of_packages',
-            'total_weight',
-            'length',
-            'width',
-            'height',
-            ));
+      array(
+        'active',
+        'product_id',
+        'number_of_packages',
+        'total_weight',
+        'length',
+        'width',
+        'height',
+      ));
     $query->condition('ct.product_id', $entity_form['#entity']->product_id);
     $results = $query->execute();
 
@@ -185,7 +186,6 @@ function commerce_tnt_inline_entity_form_entity_form_alter(&$entity_form, &$form
     $entity_form += commerce_tnt_product_form($shipping_info);
     $entity_form['shipping_info']['#weight'] = 60;
     $entity_form['#element_validate'][] = 'commerce_tnt_shipping_info_validate';
-    //$entity_form['actions']['ief_edit_save']['#submit'][] = 'commerce_tnt_entity_update';
   }
 }
 
@@ -203,14 +203,15 @@ function commerce_tnt_form_commerce_product_ui_product_form_alter(&$form, &$form
     // Load commerce_tnt info for this node, if it exist.
     $query = db_select('commerce_tnt', 'ct');
     $query->fields('ct',
-      array('active',
-            'product_id',
-            'number_of_packages',
-            'total_weight',
-            'length',
-            'width',
-            'height',
-            ));
+      array(
+        'active',
+        'product_id',
+        'number_of_packages',
+        'total_weight',
+        'length',
+        'width',
+        'height',
+      ));
     $query->condition('ct.product_id', $form['#entity']->product_id);
     $results = $query->execute();
 
@@ -228,11 +229,11 @@ function commerce_tnt_form_commerce_product_ui_product_form_alter(&$form, &$form
 
 
 /**
- * Form to add to the product entity
+ * Form to add to the product entity.
  */
 function commerce_tnt_product_form($shipping_info) {
-  
-  // Create a fieldset
+
+  // Create a fieldset.
   $form['shipping_info'] = array(
     '#type' => 'fieldset',
     '#title' => t('TNT Shipping'),
@@ -243,52 +244,52 @@ function commerce_tnt_product_form($shipping_info) {
       'class' => array('shipping_information'),
     ),
   );
-  
+
   $form['shipping_info']['active'] = array(
     '#type' => 'checkbox',
     '#title' => t('Activate TNT Shipping for this product.'),
     '#default_value' => (isset($shipping_info['shipping_info']->active)) ? $shipping_info['shipping_info']->active : 0,
   );
-  
+
   $form['shipping_info']['number_of_packages'] = array(
     '#type' => 'textfield',
     '#title' => t('Number of Packages'),
     '#description' => t('How many packages are there for this product. e.g for 3 Boxes enter 3 or for 1 Pallet enter 1'),
     '#default_value' => (isset($shipping_info['shipping_info']->number_of_packages)) ? $shipping_info['shipping_info']->number_of_packages : 1,
   );
-  
+
   $form['shipping_info']['weight'] = array(
     '#type' => 'textfield',
     '#title' => t('Total Weight'),
     '#description' => t('The total weight of all items, when packed, in kilograms (kg)'),
     '#default_value' => (isset($shipping_info['shipping_info']->total_weight)) ? $shipping_info['shipping_info']->total_weight : 1,
   );
-  
+
   $form['shipping_info']['dimensions'] = array(
     '#markup' => '<h3>Dimensions</h3>',
   );
-  
+
   $form['shipping_info']['length'] = array(
     '#type' => 'textfield',
     '#title' => t('Length (cm)'),
     '#description' => t('The total length of all packages for this product in centimetres (cm)'),
     '#default_value' => (isset($shipping_info['shipping_info']->length)) ? $shipping_info['shipping_info']->length : '',
   );
-  
+
   $form['shipping_info']['width'] = array(
     '#type' => 'textfield',
     '#title' => t('Width (cm)'),
     '#description' => t('The total width of all packages for this product in centimetres (cm)'),
     '#default_value' => (isset($shipping_info['shipping_info']->width)) ? $shipping_info['shipping_info']->width : '',
   );
-  
+
   $form['shipping_info']['height'] = array(
     '#type' => 'textfield',
     '#title' => t('Height (cm)'),
     '#description' => t('The total height of all packages for this product in centimetres (cm)'),
     '#default_value' => (isset($shipping_info['shipping_info']->height)) ? $shipping_info['shipping_info']->height : '',
   );
-  
+
   return $form;
 }
 
@@ -297,12 +298,13 @@ function commerce_tnt_product_form($shipping_info) {
  * Validate function for the Shipping Info tab on product edit page.
  */
 function commerce_tnt_shipping_info_validate($form, &$form_state) {
-  
-  // get the entity form
+
+  // get the entity form.
   $entity_form = drupal_array_get_nested_value($form_state['values'], $form['#parents']);
   $parents_path = implode('][', $form['#parents']);
 
-  if (isset($form['#ief_id'])) { // This is an Inline Entity Form, so lets validate differently.
+  // This is an Inline Entity Form, so lets validate differently.
+  if (isset($form['#ief_id'])) {
     if ($entity_form['shipping_info']['active'] == 1) {
       if ($entity_form['shipping_info']['number_of_packages'] == 0) {
         form_set_error($parents_path . '][shipping_info][number_of_packages', t('Number of Packages needs to be greater than zero.'));
@@ -379,12 +381,12 @@ function commerce_tnt_entity_presave($entity, $type) {
   if ($type == 'commerce_product' && $entity->type == 'product') {
     dsm($entity);
     if (isset($entity->shipping_info)) {
-    
+
       $shipping_info = $entity->shipping_info;
-      
+
       // Only save if active is checked.
       if ($shipping_info['active'] == 1) {
-  
+
         // Load TNT Shipping Info for this entity, if they exist.
         $query = db_select('commerce_tnt', 'ct');
         $query->fields('ct', array('ctid', 'product_id'));
@@ -394,7 +396,7 @@ function commerce_tnt_entity_presave($entity, $type) {
         foreach ($results as $row) {
           $ctid = $row->ctid;
         }
-  
+
         // Save the shipping info into the commerce_tnt table.
         $data = (object) array(
           'active' => $shipping_info['active'],
@@ -405,15 +407,15 @@ function commerce_tnt_entity_presave($entity, $type) {
           'width' => $shipping_info['width'],
           'height' => $shipping_info['height'],
         );
-  
+
         if (isset($ctid) && !empty($ctid)) {
           $data->ctid = $ctid;
         }
-  
+
         // Save the TNT Shipping data
         $key = empty($ctid) ? array() : 'ctid';
         drupal_write_record('commerce_tnt', $data, $key);
-  
+
       }
     }
   }
@@ -424,7 +426,7 @@ function commerce_tnt_entity_presave($entity, $type) {
  * Helper function to get tnt codes for their services.
  */
 function _commerce_tnt_service_list() {
-  $services =  array(
+  $services = array(
     '76' => array(
       'title' => t('Road Express'),
       'description' => t('Road Express'),
@@ -461,7 +463,7 @@ function _commerce_tnt_service_list() {
 
 
 /**
- * Helper function to get product_ids from an order
+ * Helper function to get product_ids from an order.
  *
  * Returns an array of product_ids
  */
