@@ -102,7 +102,7 @@ function commerce_tnt_build_rate_request($order) {
 /**
  * Submits an API request to TNT.
  *
- * @param $data
+ * @param string $data
  *   An XML string to submit to TNT.
  */
 function commerce_tnt_api_request($data) {
