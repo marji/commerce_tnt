@@ -3,5 +3,4 @@ description = Shipping method that communicates with the TNT API.
 package = Commerce (shipping)
 dependencies[] = commerce
 dependencies[] = commerce_shipping
-version = "7.x-0.1"
 core = 7.x
