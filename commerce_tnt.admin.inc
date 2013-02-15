@@ -80,3 +80,4 @@ function commerce_tnt_settings_form_validate($form, &$form_state) {
     }
   }
 }
+
