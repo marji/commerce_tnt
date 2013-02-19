@@ -3,7 +3,7 @@
  * @file
  * Install, update and uninstall functions for the Commerce TNT module.
  */
- 
+
 
 /**
  * Implements hook_requirements().
@@ -13,17 +13,17 @@ function commerce_tnt_requirements($phase) {
   $t = get_t();
 
   $has_curl = function_exists('curl_init');
-  
+
   $requirements['curl'] = array(
     'title' => $t('cURL'),
     'value' => $has_curl ? $t('Enabled') : $t('Not found'),
   );
-  
+
   if (!$has_curl) {
     $requirements['curl']['severity'] = REQUIREMENT_ERROR;
     $requirements['curl']['description'] = $t('The testing framework could not be installed because the PHP <a href="@curl_url">cURL</a> library is not available.', array('@curl_url' => 'http://php.net/manual/en/curl.setup.php'));
   }
-  
+
   return $requirements;
 }
 
@@ -98,7 +98,7 @@ function commerce_tnt_schema() {
  * Implements hook_uninstall().
  */
 function commerce_tnt_uninstall() {
-    $variables = array(
+  $variables = array(
     'commerce_tnt_post_url',
     'commerce_tnt_account_number',
     'commerce_tnt_user_id',

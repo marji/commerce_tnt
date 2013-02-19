@@ -107,7 +107,7 @@ function commerce_tnt_api_request($data) {
   $headers = array('Content-Type: application/x-www-form-urlencoded');
   $request = http_build_query($data, '', '&');
   $url = variable_get('commerce_tnt_post_url', '');
-  
+
   // Using cURL as drupal_http_request returns strange results from the API.
   $ch = curl_init($url);
   curl_setopt($ch, CURLOPT_POST, 1);

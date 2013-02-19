@@ -91,7 +91,7 @@ function commerce_tnt_service_rate_order($shipping_service, $order) {
   // cached rates are over one minute old...
   if (!$rates) {
     $rates = array();
-    
+
     include 'commerce_tnt.xml.inc';
 
     // Build the rate request for the current order. This returns XML.
