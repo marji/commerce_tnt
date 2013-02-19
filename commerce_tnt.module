@@ -5,8 +5,6 @@
  * Defines the TNT shipping method and services for Drupal Commerce.
  */
 
-require 'commerce_tnt.xml.inc';
-
 /**
  * Implements hook_menu().
  */
@@ -57,9 +55,9 @@ function commerce_tnt_commerce_shipping_service_info() {
     if ($val != 0) {
       $service = $available_services[$id];
       $shipping_services[$service['slug']] = array(
-        'title' => t($service['title']),
-        'description' => t($service['description']),
-        'display_title' => t($service['title']),
+        'title' => $service['title'],
+        'description' => $service['description'],
+        'display_title' => $service['title'],
         'shipping_method' => 'tnt',
         'price_component' => 'shipping',
         'callbacks' => array(
@@ -93,6 +91,8 @@ function commerce_tnt_service_rate_order($shipping_service, $order) {
   // cached rates are over one minute old...
   if (!$rates) {
     $rates = array();
+    
+    include 'commerce_tnt.xml.inc';
 
     // Build the rate request for the current order. This returns XML.
     $rate_request_xml = commerce_tnt_build_rate_request($order);
@@ -124,8 +124,8 @@ function commerce_tnt_service_rate_order($shipping_service, $order) {
       elseif (!empty($response) && isset($response->ratedTransitTimeResponse->brokenRules->brokenRule)) {
         drupal_set_message(t('Error Code: @code - @description',
           array(
-            '@code' => check_plain($response->ratedTransitTimeResponse->brokenRules->brokenRule->code),
-            '@description' => check_plain($response->ratedTransitTimeResponse->brokenRules->brokenRule->description),
+            '@code' => $response->ratedTransitTimeResponse->brokenRules->brokenRule->code,
+            '@description' => $response->ratedTransitTimeResponse->brokenRules->brokenRule->description,
           )));
       }
     }
@@ -375,48 +375,45 @@ function commerce_tnt_shipping_info_validate($form, &$form_state) {
 
 
 /**
- * Implements hook_entity_presave().
+ * Implements hook_commerce_product_presave().
  */
-function commerce_tnt_entity_presave($entity, $type) {
-  if ($type == 'commerce_product' && $entity->type == 'product') {
-    dsm($entity);
-    if (isset($entity->shipping_info)) {
+function commerce_tnt_commerce_product_presave($entity, $type) {
+  if (isset($entity->shipping_info)) {
 
-      $shipping_info = $entity->shipping_info;
+    $shipping_info = $entity->shipping_info;
 
-      // Only save if active is checked.
-      if ($shipping_info['active'] == 1) {
+    // Only save if active is checked.
+    if ($shipping_info['active'] == 1) {
 
-        // Load TNT Shipping Info for this entity, if they exist.
-        $query = db_select('commerce_tnt', 'ct');
-        $query->fields('ct', array('ctid', 'product_id'));
-        $query->condition('ct.product_id', $entity->product_id);
-        $results = $query->execute();
-        $ctid = '';
-        foreach ($results as $row) {
-          $ctid = $row->ctid;
-        }
-
-        // Save the shipping info into the commerce_tnt table.
-        $data = (object) array(
-          'active' => $shipping_info['active'],
-          'product_id' => $entity->product_id,
-          'number_of_packages' => $shipping_info['number_of_packages'],
-          'total_weight' => number_format($shipping_info['weight'], 2, '.', ''),
-          'length' => $shipping_info['length'],
-          'width' => $shipping_info['width'],
-          'height' => $shipping_info['height'],
-        );
-
-        if (isset($ctid) && !empty($ctid)) {
-          $data->ctid = $ctid;
-        }
-
-        // Save the TNT Shipping data.
-        $key = empty($ctid) ? array() : 'ctid';
-        drupal_write_record('commerce_tnt', $data, $key);
-
+      // Load TNT Shipping Info for this entity, if they exist.
+      $query = db_select('commerce_tnt', 'ct');
+      $query->fields('ct', array('ctid', 'product_id'));
+      $query->condition('ct.product_id', $entity->product_id);
+      $results = $query->execute();
+      $ctid = '';
+      foreach ($results as $row) {
+        $ctid = $row->ctid;
       }
+
+      // Save the shipping info into the commerce_tnt table.
+      $data = (object) array(
+        'active' => $shipping_info['active'],
+        'product_id' => $entity->product_id,
+        'number_of_packages' => $shipping_info['number_of_packages'],
+        'total_weight' => number_format($shipping_info['weight'], 2, '.', ''),
+        'length' => $shipping_info['length'],
+        'width' => $shipping_info['width'],
+        'height' => $shipping_info['height'],
+      );
+
+      if (isset($ctid) && !empty($ctid)) {
+        $data->ctid = $ctid;
+      }
+
+      // Save the TNT Shipping data.
+      $key = empty($ctid) ? array() : 'ctid';
+      drupal_write_record('commerce_tnt', $data, $key);
+
     }
   }
 }
