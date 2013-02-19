@@ -29,13 +29,7 @@ function commerce_tnt_build_rate_request($order) {
       )
     );
     $query->condition('ct.product_id', $product_id);
-    $result = $query->execute();
-
-    if ($result) {
-      foreach ($result as $row) {
-        $shipping_info[] = $row;
-      }
-    }
+    $shipping_info = $query->execute()->fetchAll();
   }
 
   if (!empty($shipping_info)) {
@@ -43,7 +37,6 @@ function commerce_tnt_build_rate_request($order) {
     $request->addAttribute('xmlns', 'http://www.tntexpress.com.au');
 
     $rated = $request->addChild('ratedTransitTimeEnquiry');
-
     $cutoff = $rated->addChild('cutOffTimeEnquiry');
 
     $col = $cutoff->addChild('collectionAddress');
@@ -114,7 +107,8 @@ function commerce_tnt_api_request($data) {
   $headers = array('Content-Type: application/x-www-form-urlencoded');
   $request = http_build_query($data, '', '&');
   $url = variable_get('commerce_tnt_post_url', '');
-
+  
+  // Using cURL as drupal_http_request returns strange results from the API.
   $ch = curl_init($url);
   curl_setopt($ch, CURLOPT_POST, 1);
   curl_setopt($ch, CURLOPT_TIMEOUT, 30);
