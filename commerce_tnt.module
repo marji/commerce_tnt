@@ -377,7 +377,7 @@ function commerce_tnt_shipping_info_validate($form, &$form_state) {
 /**
  * Implements hook_commerce_product_presave().
  */
-function commerce_tnt_commerce_product_presave($entity, $type) {
+function commerce_tnt_commerce_product_presave($entity) {
   if (isset($entity->shipping_info)) {
 
     $shipping_info = $entity->shipping_info;
