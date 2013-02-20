@@ -37,3 +37,9 @@ INSTALLATION & CONFIGURATION
 
 Once all setup you should now get real-time shipping estimates in your
 Drupal Commerce checkout process. If not then raise an issue.
+
+
+MAINTAINERS
+===========
+
+ *  jbloomfield <http://drupal.org/user/834002>
