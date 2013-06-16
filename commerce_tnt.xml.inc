@@ -20,7 +20,6 @@ function commerce_tnt_build_rate_request($order) {
     $query->fields('ct',
       array(
         'product_id',
-        'container_type',
         'number_of_packages',
         'total_weight',
         'length',
@@ -40,9 +39,9 @@ function commerce_tnt_build_rate_request($order) {
     $cutoff = $rated->addChild('cutOffTimeEnquiry');
 
     $col = $cutoff->addChild('collectionAddress');
-    $col->addChild('suburb', 'Osborne Park');
-    $col->addChild('postCode', '6017');
-    $col->addChild('state', 'WA');
+    $col->addChild('suburb', variable_get('commerce_tnt_collection_suburb', ''));
+    $col->addChild('postCode', variable_get('commerce_tnt_collection_postcode', ''));
+    $col->addChild('state', variable_get('commerce_tnt_collection_state', ''));
 
     $del = $cutoff->addChild('deliveryAddress');
     $del->addChild('suburb', $address_info[0]['locality']);

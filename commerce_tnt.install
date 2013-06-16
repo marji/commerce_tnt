@@ -104,6 +104,9 @@ function commerce_tnt_uninstall() {
     'commerce_tnt_user_id',
     'commerce_tnt_password',
     'commerce_tnt_services',
+    'commerce_tnt_collection_suburb',
+    'commerce_tnt_collection_postcode',
+    'commerce_tnt_collection_state',
   );
   foreach ($variables as $variable) {
     variable_del($variable);

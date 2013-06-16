@@ -57,6 +57,27 @@ function commerce_tnt_settings_form() {
     '#default_value' => variable_get('commerce_tnt_services', array()),
     '#description' => t('Select the TNT services that are available to customers.'),
   );
+  
+  $form['commerce_tnt_collection_suburb'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Collection Suburb'),
+    '#default_value' => variable_get('commerce_tnt_collection_suburb', ''),
+    '#required' => TRUE,
+  );
+  
+  $form['commerce_tnt_collection_postcode'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Collection Postcode'),
+    '#default_value' => variable_get('commerce_tnt_collection_postcode', ''),
+    '#required' => TRUE,
+  );
+  
+  $form['commerce_tnt_collection_state'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Collection State'),
+    '#default_value' => variable_get('commerce_tnt_collection_state', ''),
+    '#required' => TRUE,
+  );
 
   return system_settings_form($form);
 }
