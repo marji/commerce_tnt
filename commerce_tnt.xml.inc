@@ -14,21 +14,31 @@ function commerce_tnt_build_rate_request($order) {
   $shipping_profile = commerce_customer_profile_load($shipping_details[0]['profile_id']);
   $address_info = field_get_items('commerce_customer_profile', $shipping_profile, 'commerce_customer_address');
 
-  foreach (_commerce_tnt_get_cart_products($order) as $product_id) {
-    // Load the TNT Shipping Info using the product_id
-    $query = db_select('commerce_tnt', 'ct');
-    $query->fields('ct',
-      array(
-        'product_id',
-        'number_of_packages',
-        'total_weight',
-        'length',
-        'width',
-        'height',
-      )
-    );
-    $query->condition('ct.product_id', $product_id);
-    $shipping_info = $query->execute()->fetchAll();
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+
+  // Loop over each line item on the order.
+  foreach ($order_wrapper->commerce_line_items as $delta => $line_item_wrapper) {
+    // Get the dimensions value of product line items.
+    if (in_array($line_item_wrapper->type->value(), commerce_product_line_item_types())) {
+      $line_item_dimensions = commerce_physical_product_line_item_dimensions($line_item_wrapper->value());
+      $line_item_weight = commerce_physical_product_line_item_weight($line_item_wrapper->value());
+
+      if (!empty($line_item_weight['weight']) &&
+          !physical_field_is_empty($line_item_dimensions, array('type' => 'physical_dimensions'))) {
+        // Convert weight to kg (from function commerce_physical_order_weight):
+        $converted_weight = physical_weight_convert($line_item_weight, 'kg');
+        // Convert the dimensions to "cm" (from function commerce_physical_order_volume):
+        $converted_dimensions = physical_dimensions_convert($line_item_dimensions, 'cm');
+        $pd = new stdClass;
+        $pd->length = (string)round(($converted_dimensions['length'] + 0.5), 0, PHP_ROUND_HALF_DOWN);
+        $pd->width  = (string)round(($converted_dimensions['width'] + 0.5), 0, PHP_ROUND_HALF_DOWN);
+        $pd->height = (string)round(($converted_dimensions['height'] + 0.5), 0, PHP_ROUND_HALF_DOWN);
+        $pd->total_weight = number_format($converted_weight['weight'], 2);
+        $pd->number_of_packages='1';
+      }
+      $shipping_info[] = $pd;
+
+    }
   }
 
   if (!empty($shipping_info)) {
