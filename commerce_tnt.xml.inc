@@ -30,9 +30,9 @@ function commerce_tnt_build_rate_request($order) {
         // Convert the dimensions to "cm" (from function commerce_physical_order_volume):
         $converted_dimensions = physical_dimensions_convert($line_item_dimensions, 'cm');
         $pd = new stdClass;
-        $pd->length = (string)round(($converted_dimensions['length'] + 0.5), 0, PHP_ROUND_HALF_DOWN);
-        $pd->width  = (string)round(($converted_dimensions['width'] + 0.5), 0, PHP_ROUND_HALF_DOWN);
-        $pd->height = (string)round(($converted_dimensions['height'] + 0.5), 0, PHP_ROUND_HALF_DOWN);
+        $pd->length = (string)ceil($converted_dimensions['length']);
+        $pd->width  = (string)ceil($converted_dimensions['width']);
+        $pd->height = (string)ceil($converted_dimensions['height']);
         $pd->total_weight = number_format($converted_weight['weight'], 2);
         $pd->number_of_packages='1';
       }
