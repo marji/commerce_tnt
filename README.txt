@@ -21,6 +21,7 @@ Commerce TNT depends on the following modules:
 
  *  commerce
  *  commerce_shipping
+ *  commerce_physical
 
  You are also required to have an account with TNT (http://www.tnt.com)
 
@@ -32,8 +33,7 @@ INSTALLATION & CONFIGURATION
     you are using the latest version of all modules.
  2. Configure your TNT RTT API settings at 
     admin/commerce/config/shipping/methods/tnt/edit
- 3. Add number of packages, total weight, length, width and height to
-    the product entities
+ 3. Add weight, length, width and height to the product entities
 
 Once all setup you should now get real-time shipping estimates in your
 Drupal Commerce checkout process. If not then raise an issue.
