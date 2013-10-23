@@ -29,14 +29,14 @@ function commerce_tnt_build_rate_request($order) {
         $converted_weight = physical_weight_convert($line_item_weight, 'kg');
         // Convert the dimensions to "cm" (from function commerce_physical_order_volume):
         $converted_dimensions = physical_dimensions_convert($line_item_dimensions, 'cm');
-        $pd = new stdClass;
-        $pd->length = (string)ceil($converted_dimensions['length']);
-        $pd->width  = (string)ceil($converted_dimensions['width']);
-        $pd->height = (string)ceil($converted_dimensions['height']);
-        $pd->total_weight = number_format($converted_weight['weight'], 2);
-        $pd->number_of_packages='1';
+        $shipping = new stdClass;
+        $shipping->length = (string)ceil($converted_dimensions['length']);
+        $shipping->width  = (string)ceil($converted_dimensions['width']);
+        $shipping->height = (string)ceil($converted_dimensions['height']);
+        $shipping->total_weight = number_format($converted_weight['weight'], 2);
+        $shipping->number_of_packages='1';
       }
-      $shipping_info[] = $pd;
+      $shipping_info[] = $shipping;
 
     }
   }
